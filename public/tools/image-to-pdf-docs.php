@@ -7,7 +7,7 @@ render_header('Image to PDF or Docs', 'tools');
 tool_intro(
     'Pages from pictures',
     'Image to searchable PDF',
-    'Combine images into one PDF. When OCR is available, an invisible text layer sits over the picture so the page can be searched. The photo stays visible.'
+    'Combine images into one PDF with no document or image metadata. When OCR is available, an invisible text layer sits over the picture so the page can be searched. The photo stays visible.'
 );
 ?>
 <section class="section">
@@ -68,5 +68,6 @@ tool_intro(
 render_footer([
     '/assets/vendor/pdf-lib/pdf-lib.min.js',
     '/assets/vendor/tesseract/tesseract.min.js',
+    '/assets/js/clean.js',
     '/assets/js/image-pdf.js',
 ]);

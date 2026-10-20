@@ -164,7 +164,8 @@ final class UnicodePdf
             $out .= isset($offsets[$i]) ? sprintf("%010d 00000 n \n", $offsets[$i]) : "0000000000 65535 f \n";
         }
         $out .= "trailer\n<< /Size $size /Root 1 0 R >>\nstartxref\n$xref\n%%EOF\n";
-        return $out;
+        require_once __DIR__ . '/OutputClean.php';
+        return OutputClean::pdf($out);
     }
 
     private static function num(float $value): string

@@ -203,7 +203,7 @@
         await new Promise((resolve) => setTimeout(resolve, 0));
       }
       if (worker) await worker.terminate();
-      downloadBlob(new Blob([await pdf.save()], { type: "application/pdf" }), "enhanced.pdf");
+      await QuireClean.download(pdf, "enhanced.pdf");
       $("bar").style.width = "100%";
       $("status").textContent = opts.searchable && !window.Tesseract
         ? "Enhanced PDF downloaded. Browser OCR did not load, so there is no text layer."
@@ -232,14 +232,6 @@
       state.busy = false;
       setBusy(false);
     }
-  }
-
-  function downloadBlob(blob, name) {
-    const link = document.createElement("a");
-    link.href = URL.createObjectURL(blob);
-    link.download = name;
-    link.click();
-    setTimeout(() => URL.revokeObjectURL(link.href), 2000);
   }
 
   function setBusy(busy) {

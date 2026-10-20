@@ -203,7 +203,7 @@ PHP errors are written to the server log without the document contents, password
 | `/tools/unlock-pdf.php` | Reports encryption, accepts one password, and writes a new PDF. Permission-only files (empty user password) can have those flags cleared after confirmation. |
 | `/tools/todo.php` | Task lists stored in the browser: several lists, priorities, due dates, notes, subtasks, search, and TXT or PDF export. |
 
-A white rectangle is not described as permanent redaction. Strong encryption is not removed without the password. The original upload is kept until retention deletes it.
+A white rectangle is not described as permanent redaction. Strong encryption is not removed without the password. The original upload is kept until retention deletes it. New PDFs and images are written without document info, XMP, EXIF, IPTC, or comments. Downloading the original upload returns that file unchanged.
 
 ## Legal pages
 

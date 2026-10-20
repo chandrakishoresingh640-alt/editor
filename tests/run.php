@@ -49,6 +49,16 @@ function pdf_text(string $path): string
     return $result['stdout'];
 }
 
+function metadata_clear(string $bytes): bool
+{
+    foreach (['/Producer', '/Creator', '/CreationDate', '/ModDate', '/Author', '/Info', '/Metadata', '/PieceInfo', 'xpacket', 'gd-jpeg', "Exif\x00"] as $needle) {
+        if (str_contains($bytes, $needle)) {
+            return false;
+        }
+    }
+    return true;
+}
+
 function pdf_ok(string $path): bool
 {
     $bin = binary_path('qpdf');
@@ -119,11 +129,11 @@ if ($qpdf !== null) {
         $opened = PdfUnlock::unlock($bytes, $password);
         file_put_contents($tmp . '/out-' . $name, $opened['bytes']);
         $text = pdf_text($tmp . '/out-' . $name);
-        check("unlock {$name}", pdf_ok($tmp . '/out-' . $name) && str_contains($text, 'Hello Quire'), trim($text));
+        check("unlock {$name}", pdf_ok($tmp . '/out-' . $name) && str_contains($text, 'Hello Quire') && str_contains($text, 'café') && metadata_clear($opened['bytes']), trim($text));
         $php = PdfFile::decrypt($bytes, $password);
         file_put_contents($tmp . '/php-' . $name, $php['bytes']);
         $phpText = pdf_text($tmp . '/php-' . $name);
-        check("php unlock {$name}", pdf_ok($tmp . '/php-' . $name) && str_contains($phpText, 'Hello Quire'), trim($phpText));
+        check("php unlock {$name}", pdf_ok($tmp . '/php-' . $name) && str_contains($phpText, 'Hello Quire') && str_contains($phpText, 'café') && metadata_clear($php['bytes']), trim($phpText));
     }
 
     $restrictBytes = (string) file_get_contents($tmp . '/restrict.pdf');
@@ -136,7 +146,7 @@ if ($qpdf !== null) {
     $cleared = PdfUnlock::unlock($restrictBytes, '');
     file_put_contents($tmp . '/restrict-out.pdf', $cleared['bytes']);
     $clearedText = pdf_text($tmp . '/restrict-out.pdf');
-    check('restriction unlock', pdf_ok($tmp . '/restrict-out.pdf') && str_contains($clearedText, 'Hello Quire'), trim($clearedText));
+    check('restriction unlock', pdf_ok($tmp . '/restrict-out.pdf') && str_contains($clearedText, 'Hello Quire') && metadata_clear($cleared['bytes']), trim($clearedText));
 
     $owner = PdfFile::decrypt((string) file_get_contents($tmp . '/enc256.pdf'), 'owner');
     check('owner password kind', ($owner['password_type'] ?? '') === 'owner', json_encode(array_diff_key($owner, ['bytes' => true])));
@@ -145,7 +155,7 @@ if ($qpdf !== null) {
 $plainInfo = PdfUnlock::inspect($plain);
 check('plain inspect', empty($plainInfo['encrypted']), json_encode($plainInfo));
 $unchanged = PdfUnlock::unlock($plain, '');
-check('plain unlock unchanged', !empty($unchanged['unchanged']) && str_starts_with($unchanged['bytes'], '%PDF-'));
+check('plain unlock unchanged', !empty($unchanged['unchanged']) && $unchanged['bytes'] === $plain);
 expect_code('corrupt pdf', static fn () => PdfUnlock::inspect('this is not a pdf'), 'invalid_pdf');
 file_put_contents($tmp . '/damaged.pdf', "%PDF-1.7\ntrailer\n<<>>\n%%EOF\n");
 expect_code('damaged pdf', static fn () => PdfUnlock::inspect((string) file_get_contents($tmp . '/damaged.pdf')), 'damaged_pdf');
@@ -206,6 +216,130 @@ $imagesPdf = images_to_stored_pdf([$scan['id']], [
 ]);
 file_put_contents($tmp . '/images.pdf', Storage::bytes($imagesPdf['id']));
 check('images to pdf', pdf_ok($tmp . '/images.pdf') && str_contains(strtolower(pdf_text($tmp . '/images.pdf')), 'hello'));
+foreach (['built.pdf', 'enhanced.pdf', 'images.pdf', 'plain.pdf'] as $cleanName) {
+    $cleanBytes = (string) file_get_contents($tmp . '/' . $cleanName);
+    check('no metadata in ' . $cleanName, metadata_clear($cleanBytes), $cleanName);
+}
+
+$marked = "\xFF\xD8\xFF\xE1" . pack('n', 2 + strlen("Exif\x00\x00SECRET_AUTHOR_GPS")) . "Exif\x00\x00SECRET_AUTHOR_GPS" . substr($jpeg, 2);
+$keptImage = Storage::put($marked, 'camera.jpg', 'image');
+check('original image keeps metadata', str_contains(Storage::bytes($keptImage['id']), 'SECRET_AUTHOR_GPS'));
+$processedImage = ImageWorkshop::apply($marked, []);
+check(
+    'processed image drops metadata',
+    !str_contains($processedImage, 'SECRET_AUTHOR_GPS') && !str_contains($processedImage, 'gd-jpeg') && getimagesizefromstring($processedImage) !== false
+);
+$pngImage = imagecreatetruecolor(4, 4);
+ob_start();
+imagepng($pngImage);
+$pngBytes = (string) ob_get_clean();
+$pngText = "Author\x00SECRET_PNG_AUTHOR";
+$pngChunk = pack('N', strlen($pngText)) . 'tEXt' . $pngText . pack('N', crc32('tEXt' . $pngText));
+$pngBytes = substr($pngBytes, 0, -12) . $pngChunk . substr($pngBytes, -12);
+$pngClean = OutputClean::png($pngBytes);
+ob_start();
+imagegif($pngImage);
+$gifBytes = (string) ob_get_clean();
+imagedestroy($pngImage);
+if (str_ends_with($gifBytes, "\x3B")) {
+    $gifBytes = substr($gifBytes, 0, -1) . "\x21\xFE" . chr(10) . "SECRET_GIF\x00\x3B";
+}
+$gifClean = OutputClean::gif($gifBytes);
+check(
+    'png and gif drop metadata',
+    !str_contains($pngClean, 'SECRET_PNG_AUTHOR') && @imagecreatefromstring($pngClean) !== false
+        && !str_contains($gifClean, 'SECRET_GIF') && @imagecreatefromstring($gifClean) !== false
+);
+
+$tinyImage = imagecreatetruecolor(8, 8);
+ob_start();
+imagejpeg($tinyImage, null, 90);
+$tinyJpeg = (string) ob_get_clean();
+imagedestroy($tinyImage);
+$exif = "Exif\x00\x00SECRET_AUTHOR_GPS";
+$tinyMarked = "\xFF\xD8\xFF\xE1" . pack('n', 2 + strlen($exif)) . $exif . substr($tinyJpeg, 2);
+$xmp = '<?xpacket begin="SECRET_XMP_AUTHOR"?>';
+$pageContent = "BT /F1 24 Tf 40 100 Td (Hello Quire) Tj ET\n";
+$metaObjects = [
+    4 => '<< /Type /Font /Subtype /Type1 /BaseFont /Helvetica >>',
+    5 => '<< /Type /Metadata /Subtype /XML /Length ' . strlen($xmp) . " >>\nstream\n{$xmp}\nendstream",
+    7 => '<< /Type /XObject /Subtype /Image /Width 8 /Height 8 /ColorSpace /DeviceRGB /BitsPerComponent 8 /Filter /DCTDecode /Length ' . strlen($tinyMarked) . " >>\nstream\n{$tinyMarked}\nendstream",
+    8 => '<< /Length ' . strlen($pageContent) . " >>\nstream\n{$pageContent}\nendstream",
+    3 => '<< /Type /Page /Parent 2 0 R /MediaBox [0 0 200 200] /Resources << /Font << /F1 4 0 R >> /XObject << /Im1 7 0 R >> >> /Contents 8 0 R /LastModified (D:20200101120000Z) /PieceInfo << /Adobe << /Private (SECRET_PIECE) >> >> /Metadata 5 0 R >>',
+    2 => '<< /Type /Pages /Count 1 /Kids [3 0 R] >>',
+    1 => '<< /Type /Catalog /Pages 2 0 R /Metadata 5 0 R >>',
+    6 => '<< /Title (Secret Title) /Author (Secret Author) /Producer (Secret Producer) /CreationDate (D:20200101120000Z) >>',
+];
+$metaPdf = "%PDF-1.4\n%\xE2\xE3\xCF\xD3\n";
+$metaOffsets = [];
+for ($metaNum = 1; $metaNum <= 8; $metaNum++) {
+    if (!isset($metaObjects[$metaNum])) {
+        continue;
+    }
+    $metaOffsets[$metaNum] = strlen($metaPdf);
+    $metaPdf .= $metaNum . " 0 obj\n" . $metaObjects[$metaNum] . "\nendobj\n";
+}
+$metaXref = strlen($metaPdf);
+$metaPdf .= "xref\n0 9\n0000000000 65535 f \n";
+for ($metaNum = 1; $metaNum <= 8; $metaNum++) {
+    $metaPdf .= isset($metaOffsets[$metaNum]) ? sprintf("%010d 00000 n \n", $metaOffsets[$metaNum]) : "0000000000 65535 f \n";
+}
+$metaPdf .= "trailer\n<< /Size 9 /Root 1 0 R /Info 6 0 R /ID [<0123456789abcdef0123456789abcdef> <0123456789abcdef0123456789abcdef>] >>\nstartxref\n{$metaXref}\n%%EOF\n";
+file_put_contents($tmp . '/meta-dirty.pdf', $metaPdf);
+$metaClean = OutputClean::pdf($metaPdf);
+file_put_contents($tmp . '/meta-clean.pdf', $metaClean);
+check(
+    'metadata pdf stripped',
+    pdf_ok($tmp . '/meta-clean.pdf')
+        && metadata_clear($metaClean)
+        && !str_contains($metaClean, 'SECRET_')
+        && !str_contains($metaClean, 'Secret ')
+        && str_contains(pdf_text($tmp . '/meta-clean.pdf'), 'Hello Quire')
+);
+if ($qpdf !== null) {
+    $metaEnc = run_process([$qpdf, '--encrypt', '--user-password=secret', '--owner-password=owner', '--bits=256', '--', $tmp . '/meta-dirty.pdf', $tmp . '/meta-enc.pdf'], null, 30);
+    check('encrypt cleaned pdf', $metaEnc['code'] === 0, trim($metaEnc['stderr']));
+    if ($metaEnc['code'] === 0) {
+        $metaOpened = PdfUnlock::unlock((string) file_get_contents($tmp . '/meta-enc.pdf'), 'secret');
+        file_put_contents($tmp . '/meta-unlocked.pdf', $metaOpened['bytes']);
+        check(
+            'unlocked pdf stays clean',
+            empty($metaOpened['unchanged']) && pdf_ok($tmp . '/meta-unlocked.pdf') && metadata_clear($metaOpened['bytes']) && str_contains(pdf_text($tmp . '/meta-unlocked.pdf'), 'Hello Quire')
+        );
+    }
+}
+
+$node = trim((string) shell_exec('command -v node 2>/dev/null'));
+if ($node !== '') {
+    $nodeScript = $tmp . '/clean-browser.js';
+    file_put_contents($nodeScript, <<<'JS'
+const fs = require("fs");
+const vm = require("vm");
+const code = fs.readFileSync(process.argv[3], "utf8");
+const sandbox = { Uint8Array, ArrayBuffer, Blob, Response, DecompressionStream, setTimeout };
+sandbox.globalThis = sandbox;
+vm.createContext(sandbox);
+vm.runInContext(code, sandbox);
+sandbox.QuireClean.pdf(new sandbox.Uint8Array(fs.readFileSync(process.argv[2]))).then((clean) => {
+  fs.writeFileSync(process.argv[4], Buffer.from(clean));
+  process.stdout.write("clean");
+}).catch((error) => {
+  console.error(error && error.stack ? error.stack : error);
+  process.exit(1);
+});
+JS);
+    $nodeResult = run_process([$node, $nodeScript, $tmp . '/meta-dirty.pdf', $root . '/public/assets/js/clean.js', $tmp . '/meta-browser.pdf'], null, 30);
+    $browserBytes = is_file($tmp . '/meta-browser.pdf') ? (string) file_get_contents($tmp . '/meta-browser.pdf') : '';
+    check(
+        'browser cleaner',
+        $nodeResult['code'] === 0
+            && pdf_ok($tmp . '/meta-browser.pdf')
+            && metadata_clear($browserBytes)
+            && !str_contains($browserBytes, 'SECRET_')
+            && str_contains(pdf_text($tmp . '/meta-browser.pdf'), 'Hello Quire'),
+        trim($nodeResult['stdout'] . $nodeResult['stderr'])
+    );
+}
 
 $docx = DocxBuilder::fromBlocks([
     ['text' => 'Hello Quire', 'size' => 18],

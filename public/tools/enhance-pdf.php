@@ -7,7 +7,7 @@ render_header('Enhance scanned PDFs', 'tools');
 tool_intro(
     'Scanned pages',
     'Enhance scanned PDFs',
-    'Improve contrast, grayscale, sharpness, and rotation, then download a new PDF. The upload itself is left as it is.'
+    'Improve contrast, grayscale, sharpness, and rotation, then download a new PDF with no document or image metadata. The upload itself is left as it is.'
 );
 ?>
 <section class="section">
@@ -99,6 +99,7 @@ render_footer([
     '/assets/vendor/pdfjs/pdf.min.js',
     '/assets/vendor/pdf-lib/pdf-lib.min.js',
     '/assets/vendor/tesseract/tesseract.min.js',
+    '/assets/js/clean.js',
     '/assets/js/upload.js',
     '/assets/js/enhance.js',
 ]);

@@ -14,6 +14,8 @@ render_header('Privacy Policy');
   <p>Quire does not use the contents of your documents to train a model, and it does not write document text or passwords into the application log.</p>
   <h2>Processing that stays here</h2>
   <p>Browser OCR, PDF viewing, and browser PDF editing run on your device. Server filters, Ghostscript rendering, Tesseract, and qpdf run on this server and do not send the file to a third party.</p>
+  <h2>New files</h2>
+  <p>PDFs and images this site creates — enhanced pages, edited PDFs, unlocked copies, image exports, and text exports — are written without document info, XMP, EXIF, IPTC, or comments. The original upload is kept as you sent it until it expires or you delete it.</p>
   <h2>Optional outside services</h2>
   <p>These run only when the site owner has configured them and you take the matching action:</p>
   <ul>

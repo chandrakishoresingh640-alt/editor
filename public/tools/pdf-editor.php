@@ -74,6 +74,7 @@ tool_intro(
         <div class="note">
           <p><strong>Overlay eraser</strong> paints a white rectangle on top. The original text can still be selected unless you also tick “Flatten overlay eraser”, which rebuilds that page as an image.</p>
           <p><strong>Permanent redaction</strong> rebuilds the page as a picture with the marked area painted white, so the covered text is not left underneath.</p>
+          <p>The edited download is a new file with no document info, XMP, or image metadata. The original upload is unchanged.</p>
         </div>
       </div>
     </div>
@@ -85,6 +86,7 @@ render_footer([
     '/assets/vendor/pdfjs/pdf.min.js',
     '/assets/vendor/pdf-lib/pdf-lib.min.js',
     '/assets/vendor/tesseract/tesseract.min.js',
+    '/assets/js/clean.js',
     '/assets/js/upload.js',
     '/assets/js/pdf-editor.js',
 ]);

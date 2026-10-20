@@ -74,11 +74,29 @@ final class PdfFile
         }
         $prepared = $file->prepareCrypto($password);
         $file->loadObjects();
+        $file->removeDocumentMetadata();
         return [
             'bytes' => $file->writeUnlocked(),
             'password_type' => $prepared['kind'],
             'unchanged' => false,
         ];
+    }
+
+    public static function stripMetadata(string $pdf): string
+    {
+        $file = new self($pdf);
+        $file->readXref();
+        $info = $file->describe();
+        if (!empty($info['encrypted'])) {
+            throw new AppException('Encrypted PDFs are cleaned after they are unlocked.', 422, 'encrypted');
+        }
+        $file->loadObjects();
+        $file->removeDocumentMetadata();
+        $clean = $file->writeUnlocked();
+        if (!str_starts_with($clean, '%PDF-')) {
+            throw new AppException('The new PDF could not be written without metadata.', 500, 'metadata');
+        }
+        return $clean;
     }
 
     /** @return array<string,mixed> */
@@ -1246,5 +1264,160 @@ final class PdfFile
             $value = ($value << 8) + ord($bytes[$i]);
         }
         return $value;
+    }
+
+    private function removeDocumentMetadata(): void
+    {
+        require_once __DIR__ . '/OutputClean.php';
+        foreach ($this->objects as $num => $object) {
+            $this->objects[$num]['value'] = $this->cleanMetadataValue($object['value']);
+        }
+        unset($this->trailer['Info'], $this->trailer['ID'], $this->trailer['Encrypt']);
+        $this->retainReachableObjects();
+    }
+
+    /** @param array<string,mixed> $value */
+    private function cleanMetadataValue(array $value): array
+    {
+        $type = $value['t'] ?? '';
+        if ($type === 'dict') {
+            foreach (array_keys($value['v']) as $key) {
+                if ($this->isMetadataKey((string) $key)) {
+                    unset($value['v'][$key]);
+                    continue;
+                }
+                $value['v'][$key] = $this->cleanMetadataValue($value['v'][$key]);
+            }
+            return $value;
+        }
+        if ($type === 'array') {
+            foreach ($value['v'] as $index => $item) {
+                if (is_array($item)) {
+                    $value['v'][$index] = $this->cleanMetadataValue($item);
+                }
+            }
+            return $value;
+        }
+        if ($type === 'stream') {
+            $value['dict'] = $this->cleanMetadataValue($value['dict']);
+            return $this->cleanImageStream($value);
+        }
+        return $value;
+    }
+
+    private function isMetadataKey(string $key): bool
+    {
+        return in_array($key, [
+            'Metadata', 'PieceInfo', 'LastModified', 'CreationDate', 'ModDate',
+            'Author', 'Creator', 'Producer', 'Keywords', 'Subject', 'Trapped',
+            'AF', 'SpiderInfo', 'Info',
+        ], true);
+    }
+
+    /** @param array<string,mixed> $stream */
+    private function cleanImageStream(array $stream): array
+    {
+        $dict = $stream['dict'];
+        if (($dict['t'] ?? '') !== 'dict') {
+            return $stream;
+        }
+        $subtype = $this->dictName(['t' => 'dict', 'v' => $dict['v']], 'Subtype');
+        $filters = $this->filterNames($dict);
+        $data = (string) ($stream['data'] ?? '');
+        $jpegFilters = ['DCTDecode', 'DCT'];
+        $wrapper = [];
+        $hasJpegFilter = false;
+        foreach ($filters as $filter) {
+            if (in_array($filter, $jpegFilters, true)) {
+                $hasJpegFilter = true;
+                continue;
+            }
+            $wrapper[] = $filter;
+        }
+        if ($subtype === 'Image' && !$hasJpegFilter && !str_starts_with($data, "\xFF\xD8")) {
+            return $stream;
+        }
+        if ($wrapper === []) {
+            if (str_starts_with($data, "\xFF\xD8")) {
+                $stream['data'] = OutputClean::jpeg($data);
+            }
+            return $stream;
+        }
+        foreach ($wrapper as $filter) {
+            if (!in_array($filter, ['FlateDecode', 'Fl', 'ASCIIHexDecode', 'AHx', 'ASCII85Decode', 'A85'], true)) {
+                return $stream;
+            }
+        }
+        $wrapDict = $dict;
+        if (count($wrapper) === 1) {
+            $wrapDict['v']['Filter'] = ['t' => 'name', 'v' => $wrapper[0]];
+        } else {
+            $wrapDict['v']['Filter'] = [
+                't' => 'array',
+                'v' => array_map(static fn (string $name): array => ['t' => 'name', 'v' => $name], $wrapper),
+            ];
+        }
+        try {
+            $decoded = $this->decodeStream($wrapDict, $data);
+        } catch (AppException) {
+            return $stream;
+        }
+        $cleaned = OutputClean::image($decoded);
+        if ($cleaned === $decoded || !str_starts_with($cleaned, "\xFF\xD8")) {
+            return $stream;
+        }
+        unset($dict['v']['DecodeParms'], $dict['v']['Filter']);
+        $dict['v']['Filter'] = ['t' => 'name', 'v' => 'DCTDecode'];
+        $stream['dict'] = $dict;
+        $stream['data'] = $cleaned;
+        return $stream;
+    }
+
+    private function retainReachableObjects(): void
+    {
+        $root = $this->trailer['Root'] ?? null;
+        if (!is_array($root)) {
+            return;
+        }
+        $keep = [];
+        $stack = [$root];
+        while ($stack !== []) {
+            $value = array_pop($stack);
+            if (!is_array($value)) {
+                continue;
+            }
+            $type = $value['t'] ?? '';
+            if ($type === 'ref') {
+                $num = (int) ($value['obj'] ?? 0);
+                if ($num === 0 || isset($keep[$num])) {
+                    continue;
+                }
+                $keep[$num] = true;
+                if (isset($this->objects[$num])) {
+                    $stack[] = $this->objects[$num]['value'];
+                }
+                continue;
+            }
+            if ($type === 'array') {
+                foreach ($value['v'] as $item) {
+                    $stack[] = $item;
+                }
+                continue;
+            }
+            if ($type === 'dict') {
+                foreach ($value['v'] as $item) {
+                    $stack[] = $item;
+                }
+                continue;
+            }
+            if ($type === 'stream') {
+                $stack[] = $value['dict'];
+            }
+        }
+        foreach (array_keys($this->objects) as $num) {
+            if (!isset($keep[$num])) {
+                unset($this->objects[$num]);
+            }
+        }
     }
 }

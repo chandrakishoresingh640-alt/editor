@@ -21,6 +21,7 @@ tool_intro(
       </div>
       <div class="note">
         <p>Supported protection is the standard PDF password handler. If the file needs a password to open, that password has to be the one you type. An empty user password means the file already opens, and only the restriction flags can be cleared.</p>
+        <p>The unlocked download is a new PDF with no document info, XMP, or image metadata. The file you uploaded is kept until it expires.</p>
       </div>
     </aside>
     <div>

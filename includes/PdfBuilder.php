@@ -86,13 +86,15 @@ final class PdfBuilder
                 : "0000000000 65535 f \n";
         }
         $out .= "trailer\n<< /Size $size /Root 1 0 R >>\nstartxref\n$xref\n%%EOF\n";
-        return $out;
+        require_once __DIR__ . '/OutputClean.php';
+        return OutputClean::pdf($out);
     }
 
     /** @param array<string,mixed> $page */
     private function imageObject(array $page): string
     {
-        $data = (string) $page['jpeg'];
+        require_once __DIR__ . '/OutputClean.php';
+        $data = OutputClean::jpeg((string) $page['jpeg']);
         return '<< /Type /XObject /Subtype /Image /Width ' . $page['px'] . ' /Height ' . $page['py']
             . ' /ColorSpace /DeviceRGB /BitsPerComponent 8 /Filter /DCTDecode /Length ' . strlen($data)
             . " >>\nstream\n" . $data . "\nendstream";

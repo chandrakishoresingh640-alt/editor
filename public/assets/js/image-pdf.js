@@ -140,11 +140,7 @@
         }
       }
       if (worker) await worker.terminate();
-      const bytes = await pdf.save();
-      const link = document.createElement("a");
-      link.href = URL.createObjectURL(new Blob([bytes], { type: "application/pdf" }));
-      link.download = "images.pdf";
-      link.click();
+      await QuireClean.download(pdf, "images.pdf");
       $("status").textContent = searchable
         ? "PDF downloaded. The text layer is invisible and follows the words OCR found. It will not be perfect."
         : "PDF downloaded. It contains the images only.";

@@ -219,12 +219,8 @@
           output.addPage(copied);
         }
       }
-      const bytes = await output.save();
-      const link = document.createElement("a");
-      link.href = URL.createObjectURL(new Blob([bytes], { type: "application/pdf" }));
-      link.download = "edited.pdf";
-      link.click();
-      $("status").textContent = "Edited PDF downloaded. White overlay eraser does not delete underlying text unless you chose permanent redaction or flattening.";
+      await QuireClean.download(output, "edited.pdf");
+      $("status").textContent = "Edited PDF downloaded. It has no document info or image metadata. White overlay eraser does not delete underlying text unless you chose permanent redaction or flattening.";
       Quire.toast("Edited PDF downloaded.");
     } catch (error) {
       $("status").textContent = error.message;

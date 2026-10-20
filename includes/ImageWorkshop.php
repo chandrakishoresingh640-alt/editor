@@ -17,7 +17,8 @@ final class ImageWorkshop
         imagejpeg($image, null, 88);
         $jpeg = (string) ob_get_clean();
         imagedestroy($image);
-        return $jpeg;
+        require_once __DIR__ . '/OutputClean.php';
+        return OutputClean::jpeg($jpeg);
     }
 
     public static function apply(string $binary, array $options): string
@@ -77,7 +78,8 @@ final class ImageWorkshop
         imagejpeg($image, null, 86);
         $jpeg = (string) ob_get_clean();
         imagedestroy($image);
-        return $jpeg;
+        require_once __DIR__ . '/OutputClean.php';
+        return OutputClean::jpeg($jpeg);
     }
 
     public static function renderPdfPages(string $pdfPath, int $maxPages): array

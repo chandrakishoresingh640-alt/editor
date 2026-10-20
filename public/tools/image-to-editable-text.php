@@ -93,6 +93,7 @@ tool_intro(
 render_footer([
     '/assets/vendor/pdf-lib/pdf-lib.min.js',
     '/assets/vendor/tesseract/tesseract.min.js',
+    '/assets/js/clean.js',
     '/assets/js/upload.js',
     '/assets/js/image-text.js',
 ]);

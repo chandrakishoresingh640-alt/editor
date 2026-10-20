@@ -155,11 +155,7 @@
         color: PDFLib.rgb(0.1, 0.09, 0.08),
       });
     });
-    const blob = new Blob([await pdf.save()], { type: "application/pdf" });
-    const link = document.createElement("a");
-    link.href = URL.createObjectURL(blob);
-    link.download = "reconstructed.pdf";
-    link.click();
+    await QuireClean.download(pdf, "reconstructed.pdf");
   }
 
   document.addEventListener("DOMContentLoaded", async () => {

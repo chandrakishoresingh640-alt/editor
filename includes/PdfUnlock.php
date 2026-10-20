@@ -3,6 +3,7 @@ declare(strict_types=1);
 
 require_once __DIR__ . '/PdfCrypto.php';
 require_once __DIR__ . '/PdfFile.php';
+require_once __DIR__ . '/OutputClean.php';
 
 /**
  * Unlocks a PDF the caller is allowed to modify.
@@ -125,6 +126,7 @@ final class PdfUnlock
             if (!str_starts_with($bytes, '%PDF-')) {
                 throw new AppException('The unlocked file could not be created.', 500, 'unlock');
             }
+            $bytes = OutputClean::pdf($bytes);
             $check = run_process([$qpdf, '--show-encryption', $out], null, 20);
             $still = $check['stdout'] . $check['stderr'];
             if (!str_contains($still, 'not encrypted')) {
