@@ -201,6 +201,7 @@ PHP errors are written to the server log without the document contents, password
 | `/tools/image-to-pdf-docs.php` | Reorder and rotate images, choose A4, Letter, or fit, set margins and orientation, and add an invisible text layer when OCR runs. |
 | `/tools/pdf-editor.php` | View with PDF.js. Add text, highlights, ink, lines, and shapes. The overlay eraser is a white rectangle. Permanent redaction, or a flattened eraser, rebuilds the page as an image so the covered text is not left in the file. |
 | `/tools/unlock-pdf.php` | Reports encryption, accepts one password, and writes a new PDF. Permission-only files (empty user password) can have those flags cleared after confirmation. |
+| `/tools/todo.php` | Task lists stored in the browser: several lists, priorities, due dates, notes, subtasks, search, and TXT or PDF export. |
 
 A white rectangle is not described as permanent redaction. Strong encryption is not removed without the password. The original upload is kept until retention deletes it.
 

@@ -12,6 +12,7 @@ function icon(string $name): string
         'file' => '<path d="M6 3h6l4 4v10a1 1 0 0 1-1 1H6a1 1 0 0 1-1-1V4a1 1 0 0 1 1-1z"/><path d="M12 3v4h4"/>',
         'edit' => '<path d="M4 16.5V20h3.5L18 9.5 14.5 6 4 16.5z"/><path d="M12.5 8l3 3"/>',
         'lock' => '<rect x="5" y="10" width="10" height="8" rx="1.5"/><path d="M8 10V7a2 2 0 0 1 4 0v3"/>',
+        'check' => '<path d="M6 12.5l3.2 3.2L18 7"/><rect x="3.5" y="3.5" width="17" height="17" rx="4"/>',
     ];
     return '<span class="icon-blob" aria-hidden="true"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round">' . ($paths[$name] ?? '') . '</svg></span>';
 }
@@ -23,6 +24,7 @@ $tools = [
     ['image pdf searchable google docs', 'file', 'Image to PDF or Docs', 'Combine images into a PDF and, when OCR is available, make the text searchable.', '/tools/image-to-pdf-docs.php'],
     ['edit pdf annotate redact text', 'edit', 'PDF editor', 'Add text, highlights, drawings, and a clearly labelled eraser or permanent redaction.', '/tools/pdf-editor.php'],
     ['unlock password restrictions', 'lock', 'Unlock a PDF', 'Remove a password you already know, or clear permission flags on a file that opens without one.', '/tools/unlock-pdf.php'],
+    ['todo list tasks priorities due dates', 'check', 'Task lists', 'Keep lists, due dates, priorities, and subtasks on this device, then export them when you want a file.', '/tools/todo.php'],
 ];
 
 render_header('Quire', 'home');
@@ -31,7 +33,7 @@ render_header('Quire', 'home');
   <div class="wrap">
     <p class="kicker">Document workspace</p>
     <h1>Everything You Need to Work with PDFs and Documents.</h1>
-    <p class="lede">Enhance scanned files, extract text, edit PDFs, and summarize YouTube videos you are allowed to use. Heavy processing runs in your browser when the server does not have Ghostscript, Tesseract, or qpdf.</p>
+    <p class="lede">Enhance scanned files, extract text, edit PDFs, summarize YouTube videos you are allowed to use, and keep a task list on this device. Heavy processing runs in your browser when the server does not have Ghostscript, Tesseract, or qpdf.</p>
     <form class="search" role="search" action="#tools">
       <label class="sr-only" for="tool-search">Search tools</label>
       <input id="tool-search" type="search" placeholder="Search tools — enhance, OCR, unlock…" autocomplete="off">
@@ -88,6 +90,7 @@ render_header('Quire', 'home');
         <li>Searchable PDFs</li>
         <li>Annotations and redaction</li>
         <li>Password removal you are authorized to do</li>
+        <li>Task lists on this device</li>
       </ul>
     </div>
     <aside class="card">
@@ -115,6 +118,10 @@ render_header('Quire', 'home');
     <details>
       <summary>Are documents sent to an AI service?</summary>
       <p>Only if an AI key is configured and you tick the consent box on the summarizer. Browser OCR and the extractive summary do not send the document away.</p>
+    </details>
+    <details>
+      <summary>Where do my tasks live?</summary>
+      <p>In this browser. The list is not uploaded while you edit it. A PDF export is a temporary file on the server and expires with other downloads. Clearing this site’s data in the browser removes the list.</p>
     </details>
     <details>
       <summary>Does this work on a phone?</summary>

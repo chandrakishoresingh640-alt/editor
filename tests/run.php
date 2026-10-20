@@ -321,6 +321,7 @@ $pages = [
     '/tools/image-to-pdf-docs.php' => 'id="page-size"',
     '/tools/pdf-editor.php' => 'data-tool="redact"',
     '/tools/unlock-pdf.php' => 'id="unlock"',
+    '/tools/todo.php' => 'id="composer"',
     '/legal/privacy.php' => 'Privacy',
     '/legal/terms.php' => 'Terms',
     '/legal/cookies.php' => 'Cookie',

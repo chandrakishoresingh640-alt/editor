@@ -21,6 +21,7 @@ function render_header(string $title, string $active = ''): void
     echo '<nav id="site-nav" class="site-nav" aria-label="Primary">';
     $links = [
         'tools' => ['Tools', '/#tools'],
+        'lists' => ['Lists', '/tools/todo.php'],
         'features' => ['Features', '/#features'],
         'faq' => ['FAQ', '/#faq'],
         'about' => ['About', '/about.php'],

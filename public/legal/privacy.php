@@ -23,6 +23,8 @@ render_header('Privacy Policy');
     <li>The configured AI provider receives the transcript only when you tick the consent box. The API key stays on the server.</li>
   </ul>
   <p>Browser OCR may download an English language file from this same website. It does not upload the image to that request.</p>
+  <h2>Task list</h2>
+  <p>Tasks on the Lists page stay in this browser’s local storage. They are not sent to the server while you add, edit, or tick them. If you download the list as a PDF, that export is stored like any other temporary download and deleted on the same schedule.</p>
   <h2>Contact messages</h2>
   <p>Messages from the contact form are stored in a private folder for the site owner. If an email address is configured and the host allows mail, a copy is sent there. Contact messages are not part of the short document-retention window.</p>
   <h2>Cookies</h2>
