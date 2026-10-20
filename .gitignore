@@ -1,0 +1,15 @@
+/config/environment.php
+/config/environment.env
+/private_storage/uploads/*
+/private_storage/processed/*
+/private_storage/logs/*
+/private_storage/messages/*
+!private_storage/uploads/.gitkeep
+!private_storage/processed/.gitkeep
+!private_storage/logs/.gitkeep
+!private_storage/messages/.gitkeep
+!private_storage/**/.htaccess
+/vendor/
+/node_modules/
+.DS_Store
+*.log
