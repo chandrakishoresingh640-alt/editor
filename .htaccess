@@ -1,0 +1,16 @@
+Options -Indexes
+ServerSignature Off
+
+<IfModule mod_authz_core.c>
+  <FilesMatch "^(environment\.php|environment\.env)$">
+    Require all denied
+  </FilesMatch>
+</IfModule>
+
+<IfModule mod_rewrite.c>
+  RewriteEngine On
+  RewriteRule ^(?:includes|config|private_storage|scripts|tests)(?:/|$) - [F,L]
+  RewriteRule ^public/(.*)$ public/$1 [L]
+  RewriteCond %{REQUEST_URI} !^/public/
+  RewriteRule ^(.*)$ public/$1 [L]
+</IfModule>
